@@ -1,0 +1,289 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r}
+install.packages("keras")
+```
+
+
+```{r}
+library(keras)
+```
+
+```{r}
+install_keras()
+```
+```{r}
+data<- read.csv("D:/OneDrive/B_Doutorado/2_Redes_Neurais_Artificiais/Projeto_Final/hateful-users-on-twitter/users_neighborhood_anon.csv", sep = ",")[ ,1:81]
+
+```
+
+```{r}
+data<-data[-1]
+head(data)
+```
+```{r}
+#eda_report(data, target=hate, output_format = "html", output_file = "D:/EDA_hate_speech2.html")
+```
+
+```{r}
+data1<-data[,1:80]
+data1<-subset(data1, data1$hate!="other")
+
+```
+```{r}
+head(data1)
+```
+```{r}
+
+install.packages("dlookr")
+```
+
+
+```{r}
+library(dlookr)
+library(dplyr)
+install.packages('SmartEDA')
+```
+
+```{r}
+eda_report(data1, target=hate, output_format = "html", output_file = "D:/EDA_hate_speech3.html")
+```
+
+```{r}
+#Busca de missings
+any(is.na(data1))
+#quantidade de missings
+sum(is.na(data1))
+```
+```{r}
+colSums(is.na(data1))        
+```
+```{r}
+head(data1)
+```
+
+```{r}
+str(data1)
+```
+
+
+
+```{r}
+library(dplyr)
+help(dlookr)
+#describe(data)
+head(data1)
+eda_report(data1, target=hate, output_format = "html", output_file = "D:/EDA_hate_speech.html")
+```
+
+```{r}
+summary(data1)
+```
+
+```{r}
+for (i in 6:80){
+  data1[is.na(data1[,i]),i]<-mean(data1[,i], na.rm=TRUE)
+}
+```
+
+
+
+```{r}
+colSums(is.na(data1))
+```
+```{r}
+str(data1)
+```
+
+```{r}
+table(data1$hate)
+table(data1$hate_neigh)
+table(data1$normal_neigh)
+```
+```{r}
+require(dplyr)
+levels(data1$hate) <- c(1,2,3)
+levels(data1$hate_neigh) <- c(0,1)    #True=1 #False=0
+levels(data1$normal_neigh) <- c(0,1)    #True=1 #False=0
+data1$hate<-as.numeric(as.character(data1$hate))
+data1$hate_neigh<-as.numeric(as.character(data1$hate_neigh))
+data1$normal_neigh<-as.numeric(as.character(data1$normal_neigh))
+table(data1$hate)
+table(data1$hate_neigh)
+table(data1$normal_neigh)
+str(data1)
+
+```
+```{r}
+eda_report(data1, target=hate, output_format = "html", output_file = "D:/EDA_hate_speech.html")
+```
+
+```{r}
+data3<-as.matrix(data1)
+dimnames(data3)<-NULL
+str(data3)
+```
+
+```{r}
+#Normalize
+data3[,4:80]<-normalize(data3[,4:80])
+data3[,1]<-as.numeric(data3[,1])-1
+
+```
+
+```{r}
+
+table(data3[,1])
+```
+
+```{r}
+#Data Partition
+set.seed(1234)
+ind<-sample(2, nrow(data3), replace=T,prob=c(0.7,0.3))
+training<-data3[ind==1,2:80]
+test<-data3[ind==2,2:80]
+trainingtarget<-data3[ind==1,1]
+testtarget<-data3[ind==2,1]
+
+```
+
+```{r}
+head(testtarget)
+table(testtarget)
+```
+
+```{r}
+#One Hot Encoding
+trainLabels<-to_categorical(trainingtarget)
+testLabels<-to_categorical(testtarget)
+```
+```{r}
+head(testLabels)
+head(testLabels)
+table(trainLabels)
+table(testLabels)
+table(testtarget)
+```
+#Criação do Modelo
+```{r}
+model<-keras_model_sequential()
+model %>% 
+  layer_dense(units = 50, activation = 'relu', input_shape = c(79))%>%
+  layer_dense(units = 8,  activation= 'relu') %>%
+  layer_dense(units = 2, activation='softmax')
+summary(model)
+```
+
+#Compilação do Modelo
+
+```{r}
+model %>%
+  compile(loss='categorical_crossentropy',
+          optimizer = 'adam',
+          metrics='accuracy')
+```
+
+#Fit do Modelo (Multilayer Perceptron Neural Network para Classificação Softmax Multi-class)
+```{r}
+history <-model %>%
+  fit(training,
+      trainLabels,
+      epochs = 150,
+      batch_size = 32,
+      validation_split=0.4)
+```
+
+
+```{r}
+# Plot the model loss of the training data
+plot3_loss<-plot(history$metrics$loss, main="Model Loss", xlab = "epoch", ylab="loss", col="blue", type="l")
+
+# Plot the model loss of the test data
+lines(history$metrics$val_loss, col="green")
+
+# Add legend
+legend("topright", c("train","test"), col=c("blue", "green"), lty=c(1,1))
+
+dev.copy(png,'plot3_loss.png')
+dev.off ()
+
+
+```
+
+```{r}
+# Plot the accuracy of the training data 
+plot3_acc<-plot(history$metrics$acc, main="Model Accuracy", xlab = "epoch", ylab="accuracy", col="blue", type="l")
+
+# Plot the accuracy of the validation data
+lines(history$metrics$val_acc, col="green")
+
+# Add Legend
+legend("bottomright", c("train","test"), col=c("blue", "green"), lty=c(1,1))
+
+dev.copy(png,'plot3_acc.png')
+dev.off ()
+```
+
+```{r}
+#Avaliação do Modelo - Dados de Teste
+model3<-model %>%
+  evaluate(test,testLabels)
+```
+
+```{r}
+#Predição e Matriz de Confusão
+prob<-model %>%
+  predict_proba(test)
+pred <-model %>%
+  predict_classes(test)
+table3<-table(Predicted=pred, Actual=testtarget)
+
+```
+
+```{r}
+cbind(prob, pred, testtarget)
+```
+#Fine Tune Model
+#Modelo 1 
+model<-keras_model_sequential()
+model %>% 
+  layer_dense(units = 8, activation = 'relu', input_shape = c(79))%>%
+    layer_dense(units = 2, activation='softmax')#Modelo 1 
+```{r}
+#Fine Tune Model
+#Modelo 1 
+table1
+model1
+```
+
+#Modelo 2 
+model<-keras_model_sequential()
+model %>% 
+  layer_dense(units = 50, activation = 'relu', input_shape = c(79))%>%
+    layer_dense(units = 2, activation='softmax')
+```{r}
+#Fine Tune Model
+#Modelo 2 
+table2
+model2
+```
+
+#Modelo 3 
+model<-keras_model_sequential()
+model %>% 
+  layer_dense(units = 50, activation = 'relu', input_shape = c(79))%>%
+  #layer_dense(units = 8,  activation= 'relu') %>%
+  layer_dense(units = 2, activation='softmax')
+
+```{r}
+#Fine Tune Model
+#Modelo 3 
+table3
+model3
+
+```
+
+
