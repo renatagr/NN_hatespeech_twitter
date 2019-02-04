@@ -15,9 +15,9 @@ Construção do Modelo (Utilização de MLP):
 #Modelo 2:
 - Perceptron de camada simples com 50 neurônios
 - Função de ativação Relu
-- Função de ativação softmax foi usada na camada de saída (para obtenção de valores de saída 0 e 1. 
+- Função de ativação softmax foi usada na camada de saída (para obtenção de valores de saída 0 e 1). 
 
 #Modelo 3:
 - Perceptron com 50 neurônios e uma camada oculta de 8 neurônios
 - Função de ativação Relu
-- Função de ativação softmax foi usada na camada de saída (para obtenção de valores de saída 0 e 1. 
+- Função de ativação softmax foi usada na camada de saída (para obtenção de valores de saída 0 e 1). 
